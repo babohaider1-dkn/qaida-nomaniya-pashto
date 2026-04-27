@@ -1,0 +1,47 @@
+name: Flutter APK Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Extract ZIP
+        run: |
+          find . -name "*.zip" -exec unzip -o {} \;
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+
+      - name: Download Noto Nastaliq Font
+        run: |
+          mkdir -p qaida_nomaniya/assets/fonts
+          wget -q "https://github.com/google/fonts/raw/main/ofl/notonastaliqurdu/NotoNastaliqUrdu%5Bwght%5D.ttf" -O qaida_nomaniya/assets/fonts/NotoNastaliqUrdu-Regular.ttf || true
+          cp qaida_nomaniya/assets/fonts/NotoNastaliqUrdu-Regular.ttf qaida_nomaniya/assets/fonts/NotoNastaliqUrdu-Bold.ttf || true
+
+      - name: Flutter pub get
+        working-directory: qaida_nomaniya
+        run: flutter pub get
+
+      - name: Build APK
+        working-directory: qaida_nomaniya
+        run: flutter build apk --release --no-shrink
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: qaida-nomaniya-apk
+          path: qaida_nomaniya/build/app/outputs/flutter-apk/app-release.apk
